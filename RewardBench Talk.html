@@ -163,7 +163,7 @@ table.sub td.n{text-align:right;font-family:var(--mono);white-space:nowrap}
   <section class="slide" data-title="Title">
     <div class="inner title-grid">
       <div style="display:grid;gap:20px">
-        <div class="eyebrow">Paper presentation · CS707 Sep 2026 Presentation</div>
+        <div class="eyebrow">CS707 Sep 2026 Presentation</div>
         <h1>RewardBench: testing the judge behind RLHF</h1>
         <p class="lede">RLHF trains a chatbot against a reward model. Until this paper, almost nobody measured whether that reward model actually picks the better answer.</p>
         <div class="byline">Lambert, Pyatkin, Morrison, Miranda, Lin, Chandu, Dziri, Kumar, Zick, Choi, Smith, Hajishirzi<br>Allen Institute for AI · University of Washington · Harvard Berkman Klein Center</div>
@@ -380,9 +380,10 @@ table.sub td.n{text-align:right;font-family:var(--mono);white-space:nowrap}
       <h2>DPO models are judges only with their reference model</h2>
       <div class="cols">
         <div class="panel">
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h3>Remove π<sub>ref</sub> and scores fall</h3><button class="btn" id="refBtn" type="button" aria-pressed="false">Remove reference model</button></div>
+          <h3>Remove π<sub>ref</sub> and scores fall</h3>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><div class="tabs" id="refTabs"><button class="btn" type="button" data-v="avg" aria-pressed="true">Average score</button><button class="btn" type="button" data-v="safety" aria-pressed="false">Safety drop</button></div><button class="btn" id="refBtn" type="button" aria-pressed="false">Remove reference model</button></div>
           <div class="chart"><svg id="refChart" role="img" aria-label="DPO scores with and without reference model"></svg></div>
-          <p class="small muted">Four-section average. Biggest drops land on Safety (up to −49 points). Using a <em>similar but wrong</em> reference model drops scores to about random.</p>
+          <p class="small muted" id="refNote"></p>
         </div>
         <div class="panel">
           <h3>Scaling helps one family, not the other</h3>
@@ -503,11 +504,11 @@ const m=/^#s(\d+)$/.exec(location.hash||''); go(m?parseInt(m[1],10)-1:0);
 
 /* ---------- generic horizontal bar chart ---------- */
 function hbar(svg,rows,o){
-  o=Object.assign({W:760,labelW:220,rowH:30,max:100,ref:50,refLabel:'random 50%'},o||{});
+  o=Object.assign({W:760,labelW:220,rowH:30,max:100,ref:50,refLabel:'random 50%',ticks:[0,25,50,75,100]},o||{});
   while(svg.firstChild)svg.removeChild(svg.firstChild);
   const top=22,H=top+rows.length*o.rowH+8,x0=o.labelW,x1=o.W-56,sx=v=>x0+(v/o.max)*(x1-x0);
   svg.setAttribute('viewBox',`0 0 ${o.W} ${H}`);
-  [0,25,50,75,100].forEach(t=>{svg.appendChild(S('line',{x1:sx(t),x2:sx(t),y1:top-6,y2:H-6,class:'grid'}));svg.appendChild(S('text',{x:sx(t),y:12,'text-anchor':'middle'},t));});
+  o.ticks.forEach(t=>{svg.appendChild(S('line',{x1:sx(t),x2:sx(t),y1:top-6,y2:H-6,class:'grid'}));svg.appendChild(S('text',{x:sx(t),y:12,'text-anchor':'middle'},t));});
   rows.forEach((r,i)=>{
     const y=top+i*o.rowH;
     svg.appendChild(S('text',{x:x0-10,y:y+o.rowH/2+4,'text-anchor':'end',class:'lbl'},r.label));
@@ -699,13 +700,26 @@ const SHOW={'ArmoRM-Llama3-8B':[-8,-10,'end'],'beaver-7b-v1.0-cost':[10,4,'start
 })();
 
 /* ---------- slide 10: DPO ---------- */
-const REF=[['Mixtral-8x7B-Instruct',82.2,64.2],['Tülu-2-DPO-13B',78.8,62.9],['zephyr-7b-alpha',78.6,65.6],['Nous-Hermes-2-Mistral-7B',78.0,62.5],['Tülu-2-DPO-7B',76.1,61.3],['zephyr-7b-beta',75.4,64.5],['Qwen1.5-7B-Chat',71.3,66.8]];
-let noRef=false;
+/* [name, avg with ref, avg without ref, Safety delta] — Table 7 */
+const REF=[['Mixtral-8x7B-Instruct',82.2,64.2,-35.3],['Tülu-2-DPO-13B',78.8,62.9,-36.5],['zephyr-7b-alpha',78.6,65.6,-31.0],['Nous-Hermes-2-Mistral-7B',78.0,62.5,-48.7],['Tülu-2-DPO-7B',76.1,61.3,-32.1],['zephyr-7b-beta',75.4,64.5,-18.3],['Qwen1.5-7B-Chat',71.3,66.8,-27.9]];
+let noRef=false, refView='avg';
 function renderRef(){
-  hbar($('#refChart'),REF.map(r=>noRef?{label:r[0],value:r[2],ghost:r[1],color:'var(--dpo)',text:r[2].toFixed(1)+'  ('+(r[2]-r[1]).toFixed(1)+')'}:{label:r[0],value:r[1],color:'var(--dpo)'}),{labelW:190,rowH:30,W:640});
-  $('#refBtn').setAttribute('aria-pressed',noRef);$('#refBtn').textContent=noRef?'Restore reference model':'Remove reference model';
+  const btn=$('#refBtn');
+  $$('#refTabs .btn').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===refView));
+  if(refView==='safety'){
+    btn.hidden=true;
+    hbar($('#refChart'),REF.map(r=>({label:r[0],value:-r[3],color:'var(--loss)',text:r[3].toFixed(1)+'  (avg '+(r[2]-r[1]).toFixed(1)+')'})),{labelW:190,rowH:30,W:640,max:60,ticks:[0,20,40,60],ref:null});
+    $('#refNote').innerHTML='Points lost on the <b>Safety</b> section when the reference model is removed, with the four-section average drop in brackets. Safety loses 18–49 points, more than the average drop for every model shown.';
+  } else {
+    btn.hidden=false;
+    hbar($('#refChart'),REF.map(r=>noRef?{label:r[0],value:r[2],ghost:r[1],color:'var(--dpo)',text:r[2].toFixed(1)+'  ('+(r[2]-r[1]).toFixed(1)+')'}:{label:r[0],value:r[1],color:'var(--dpo)'}),{labelW:190,rowH:30,W:640});
+    btn.setAttribute('aria-pressed',noRef);btn.textContent=noRef?'Restore reference model':'Remove reference model';
+    $('#refNote').innerHTML='Four-section average. Switch to <b>Safety drop</b> to see where the damage lands. Using a <em>similar but wrong</em> reference model drops scores to about random.';
+  }
 }
-$('#refBtn').onclick=()=>{noRef=!noRef;renderRef();};renderRef();
+$('#refBtn').onclick=()=>{noRef=!noRef;renderRef();};
+$$('#refTabs .btn').forEach(b=>b.onclick=()=>{refView=b.dataset.v;renderRef();});
+renderRef();
 (function(){
   const svg=$('#scaleChart'),W=460,H=230,l=44,r=70,t=14,b=34,xs=[0,1,2],xl=['7B','13–14B','70–72B'],y0=64,y1=80;
   const sx=i=>l+i*(W-l-r)/2, sy=v=>t+(1-(v-y0)/(y1-y0))*(H-t-b);
