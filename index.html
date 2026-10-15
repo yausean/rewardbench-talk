@@ -143,6 +143,10 @@ table.sub td.n{text-align:right;font-family:var(--mono);white-space:nowrap}
 .cmp{width:100%;border-collapse:collapse;font-size:14px}
 .cmp th,.cmp td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
 .cmp th{font-family:var(--mono);font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.contrib{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:16px}
+.contrib > *{min-width:0}
+.jump{display:flex;flex-wrap:wrap;gap:8px;padding-left:44px}
+@media (max-width:600px){.jump{padding-left:0}}
 .kbd{font-family:var(--mono);font-size:12px;border:1px solid var(--line);border-radius:4px;padding:0 5px}
 @media (max-width:600px){.topbar .hint{display:none}}
 </style>
@@ -209,7 +213,38 @@ table.sub td.n{text-align:right;font-family:var(--mono);white-space:nowrap}
     </div>
   </section>
 
-  <!-- 4 BT + DPO -->
+  <!-- 4 CONTRIBUTIONS -->
+  <section class="slide" data-title="What this paper contributes" hidden>
+    <div class="inner">
+      <div class="eyebrow">Contributions · Section 1</div>
+      <h2>Four things the paper sets out to do</h2>
+      <div class="contrib">
+        <div class="panel">
+          <div class="tk"><span class="i">1</span><div style="display:grid;gap:6px"><h3>A common evaluation framework</h3>
+          <p class="small">One inference stack that scores classifiers, DPO models and LLM judges the same way. The authors also release the tools and every text–score pair from ~75 models for further analysis.</p></div></div>
+          <div class="jump"><button class="btn" type="button" data-go="5">How models are scored → 5</button><button class="btn" type="button" data-go="7">The dataset → 7</button></div>
+        </div>
+        <div class="panel">
+          <div class="tk"><span class="i">2</span><div style="display:grid;gap:6px"><h3>DPO vs classifier reward models</h3>
+          <p class="small">DPO models are more plentiful because DPO is simple to run. But they score very low on older preference test sets and their results vary more.</p></div></div>
+          <div class="jump"><button class="btn" type="button" data-go="11">DPO findings → 11</button></div>
+        </div>
+        <div class="panel">
+          <div class="tk"><span class="i">3</span><div style="display:grid;gap:6px"><h3>A map of current reward models</h3>
+          <p class="small">How today's reward models compare on scaling, their tendency to refuse, reasoning ability and more.</p></div></div>
+          <div class="jump"><button class="btn" type="button" data-go="8">Leaderboard → 8</button><button class="btn" type="button" data-go="10">Safety → 10</button></div>
+        </div>
+        <div class="panel">
+          <div class="tk"><span class="i">4</span><div style="display:grid;gap:6px"><h3>Limits of existing test sets</h3>
+          <p class="small">Older preference test sets are noisy and hit a ceiling. Reward models also fail on subtle pairs, such as a polished answer to the wrong prompt.</p></div></div>
+          <div class="jump"><button class="btn" type="button" data-go="3">The gap → 3</button><button class="btn" type="button" data-go="9">Chat Hard → 9</button></div>
+        </div>
+      </div>
+      <p class="small muted">Click a button to jump to the evidence. Use ← to come back.</p>
+    </div>
+  </section>
+
+  <!-- 5 BT + DPO -->
   <section class="slide" data-title="How a reward model scores" hidden>
     <div class="inner">
       <div class="eyebrow">Background · Section 3</div>
@@ -356,7 +391,7 @@ table.sub td.n{text-align:right;font-family:var(--mono);white-space:nowrap}
           <p class="small muted">Same training recipe at 7B → 13B → 70B gives steady gains for Tülu 2. Qwen 1.5 is flat, which the authors attribute to out-of-distribution generalisation.</p>
         </div>
       </div>
-      <p class="key">DPO models are plentiful because they're cheap to train, but many releases don't document their reference model. Without it, they can't be benchmarked reliably.</p>
+      <p class="key">DPO models are plentiful because they're cheap to train, but many releases don't document their reference model. Without it, they can't be benchmarked reliably. DPO models also score very low on the older preference test sets (Prior Sets), and their results vary more than classifiers'.</p>
     </div>
   </section>
 
@@ -408,7 +443,7 @@ table.sub td.n{text-align:right;font-family:var(--mono);white-space:nowrap}
       <div class="eyebrow">Wrap-up</div>
       <h2>Takeaways</h2>
       <div class="cols-3">
-        <div class="tk"><span class="i">1</span><p><b>Test the judge, not just the student.</b> RewardBench is the first shared benchmark and toolkit for reward models across classifiers, DPO and LLM judges.</p></div>
+        <div class="tk"><span class="i">1</span><p><b>Test the judge, not just the student.</b> RewardBench is the first shared benchmark and toolkit for reward models across classifiers, DPO and LLM judges, with all scores released for further study.</p></div>
         <div class="tk"><span class="i">2</span><p><b>Easy is solved, subtle is not.</b> Chat ≈ 95–99%; Chat Hard tops out near 77–81%, and safety behaviour varies wildly.</p></div>
         <div class="tk"><span class="i">3</span><p><b>Ranking ≠ usefulness yet.</b> The benchmark measures pairwise agreement; its link to better RLHF policies was left for follow-up work.</p></div>
       </div>
@@ -689,7 +724,10 @@ hbar($('#genChart'),[
  ['Claude 3 Opus','gen',80.7],['Llama-3-70B-Instruct (open)','gen',75.4],['Prometheus 2 8x7B (open)','gen',75.3],['Claude 3 Sonnet','gen',75.0],['Claude 3 Haiku','gen',73.5],['GPT-3.5 Turbo','gen',64.6]
 ].map(r=>({label:r[0],value:r[2],color:TYPE[r[1]]})),{labelW:230,rowH:28});
 
-/* ---------- slide 13: reveal ---------- */
+/* ---------- slide 4: jump buttons ---------- */
+$$('[data-go]').forEach(b=>b.onclick=()=>go(parseInt(b.dataset.go,10)-1));
+
+/* ---------- last slide: reveal ---------- */
 $$('#qs .q').forEach(q=>q.onclick=()=>{const h=q.querySelector('.hint');h.hidden=!h.hidden;});
 })();
 </script>
